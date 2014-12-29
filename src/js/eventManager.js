@@ -7,9 +7,9 @@ define(['jquery'], function($) {
  */
 return function(writer) {
 	var w = writer;
-	
+
 	var events = {};
-	
+
 	/**
 	 * Register an event with the Writer
 	 * @memberof Writer
@@ -19,7 +19,6 @@ return function(writer) {
 	 */
 	w.event = function(id) {
 		var callbacks, method, event = id && events[id];
-		
 		if (!event) {
 			callbacks = $.Callbacks();
 			event = {
@@ -34,19 +33,17 @@ return function(writer) {
 				event: id
 			};
 		}
-		
 		if (id) {
 			events[id] = event;
 		}
-		
 		return event;
 	};
-	
+
 	/**
 	 * CWRCWriter events
 	 */
-	
-	
+
+
 	/**
 	 * The writer has been initialized
 	 * @event Writer#writerInitialized
@@ -65,8 +62,8 @@ return function(writer) {
 	 * @param {Object} entitiesList The EntitiesList
 	 */
 	w.event('entitiesListInitialized');
-	
-	
+
+
 	/**
 	 * The current node was changed
 	 * @event Writer#nodeChanged
@@ -79,8 +76,8 @@ return function(writer) {
 	 * @param {TinyMCE} editor The editor
 	 */
 	w.event('contentChanged');
-	
-	
+
+
 	/**
 	 * A document was loaded into the editor
 	 * @event Writer#documentLoaded
@@ -91,8 +88,8 @@ return function(writer) {
 	 * @event Writer#documentSaved
 	 */
 	w.event('documentSaved');
-	
-	
+
+
 	/**
 	 * A schema was loaded into the editor
 	 * @event Writer#schemaLoaded
@@ -110,7 +107,7 @@ return function(writer) {
 	 * @param {String} id The id of the new schema
 	 */
 	w.event('schemaAdded');
-	
+
 	/**
 	 * A document was sent to the validation service
 	 * @event Writer#validationInitiated
@@ -124,8 +121,8 @@ return function(writer) {
 	 * @param {String} docString The string sent to the validator
 	 */
 	w.event('documentValidated');
-	
-	
+
+
 	/**
 	 * A segment of the document was copied
 	 * @event Writer#contentCopied
@@ -136,7 +133,7 @@ return function(writer) {
 	 * @event Writer#contentPasted
 	 */
 	w.event('contentPasted');
-	
+
 	/**
 	 * The user triggered a keydown event in the editor
 	 * @event Writer#writerKeydown
@@ -149,8 +146,8 @@ return function(writer) {
 	 * @param {Object} event Event object
 	 */
 	w.event('writerKeyup');
-	
-	
+
+
 	/**
 	 * An entity was added to the document
 	 * @event Writer#entityAdded
@@ -193,8 +190,8 @@ return function(writer) {
 	 * @param {String} id The entity ID
 	 */
 	w.event('entityPasted');
-	
-	
+
+
 	/**
 	 * A structure tag was added
 	 * @event Writer#tagAdded
@@ -226,12 +223,12 @@ return function(writer) {
 	 * @param {Boolean} contentsSelected True if only tag contents were selected
 	 */
 	w.event('tagSelected');
-	
+
 	/**
 	 * @lends EventManager.prototype
 	 */
 	var e = {};
-	
+
 	/**
 	 * Get the list of events
 	 * @returns {Object}
@@ -239,7 +236,7 @@ return function(writer) {
 	e.getEvents = function() {
 		return events;
 	};
-	
+
 	return e;
 };
 
