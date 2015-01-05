@@ -6,21 +6,21 @@ define(['jquery'], function($) {
  */
 return function(writer) {
 	var w = writer;
-
+	
 	/**
 	 * @lends Tagger.prototype
 	 */
 	var tagger = {};
-
+	
 	/**
 	 * Inserts entity boundary tags around the supplied DOM range.
-	 * @param {string} id The id of then entity
+	 * @param {string} id The id of then entity 
 	 * @param {string} type The entity type
 	 * @param {range} range The DOM range to insert the tags around
 	 */
 	tagger.insertBoundaryTags = function(id, type, range) {
 		var parentTag = w.entitiesModel.getParentTag(type, w.schemaManager.schemaId);
-
+		
 		if (type === 'note' || type === 'citation' || type === 'keyword') {
 			var tag = w.editor.dom.create('span', {
 				'_entity': true, '_note': true, '_tag': parentTag, '_type': type, 'class': 'entity '+type+' start', 'name': id, 'id': id
@@ -34,7 +34,7 @@ return function(writer) {
 			sel.collapse(false);
 			range = sel.getRng(true);
 			range.insertNode(tag);
-
+			
 			w.editor.dom.bind(tag, 'click', function(e) {
 				var marker = w.editor.dom.get(e.target);
 				var tagId = marker.getAttribute('name');
@@ -43,18 +43,18 @@ return function(writer) {
 		} else {
 			if (range.startContainer.parentNode != range.endContainer.parentNode) {
 				var nodes = w.utilities.getNodesInBetween(range.startContainer, range.endContainer);
-
+				
 				var startRange = range.cloneRange();
 				startRange.setEnd(range.startContainer, range.startContainer.length);
 				var start = w.editor.dom.create('span', {
 					'_entity': true, '_type': type, 'class': 'entity '+type+' start', 'name': id
 				}, '');
 				startRange.surroundContents(start);
-
+				
 				$.each(nodes, function(index, node) {
 					$(node).wrap('<span _entity="true" _type="'+type+'" class="entity '+type+'" name="'+id+'" />');
 				});
-
+				
 				var endRange = range.cloneRange();
 				endRange.setStart(range.endContainer, 0);
 				var end = w.editor.dom.create('span',{
@@ -69,7 +69,7 @@ return function(writer) {
 			}
 		}
 	};
-
+	
 	// prevents the user from moving the caret inside a marker
 	var _doMarkerClick = function(e) {
 		var marker = w.editor.dom.get(e.target);
@@ -84,7 +84,7 @@ return function(writer) {
 		w.editor.selection.setRng(range);
 		w.highlightEntity(marker.getAttribute('name'), w.editor.selection.getBookmark());
 	};
-
+	
 	/**
 	 * Get the entity boundary tag that corresponds to the passed tag.
 	 * @param {element} tag
@@ -99,14 +99,14 @@ return function(writer) {
 		}
 		return corrTag;
 	};
-
+	
 	/**
 	 * Searches for an entity boundary containing the current node.
 	 * @param {string} boundaryType Either 'start' or 'end'.
 	 * @param {element} currentNode The node that is currently being examined.
 	 */
 	tagger.findEntityBoundary = function(boundaryType, currentNode) {
-
+		
 		/**
 		 * @param entIds An array of entity ids that are encountered.  Used to prevent false positives.
 		 * @param levels An array to track the levels of node depth in order to prevent endless recursion.
@@ -120,7 +120,7 @@ return function(writer) {
 					structIds[currentNode.id] = true;
 				}
 			}
-
+			
 			if (w.editor.dom.hasClass(currentNode, 'entity')) {
 				var nodeId = currentNode.getAttribute('name');
 				if (w.editor.dom.hasClass(currentNode, boundaryType)) {
@@ -133,7 +133,7 @@ return function(writer) {
 					entIds.push(nodeId);
 				}
 			}
-
+			
 			if (boundaryType == 'start' && currentNode.lastChild) {
 				levels.push(currentNode);
 				return doFind(boundaryType, currentNode.lastChild, entIds, levels, structIds);
@@ -141,13 +141,13 @@ return function(writer) {
 				levels.push(currentNode);
 				return doFind(boundaryType, currentNode.firstChild, entIds, levels, structIds);
 			}
-
+			
 			if (boundaryType == 'start' && currentNode.previousSibling) {
 				return doFind(boundaryType, currentNode.previousSibling, entIds, levels, structIds);
 			} else if (boundaryType == 'end' && currentNode.nextSibling) {
 				return doFind(boundaryType, currentNode.nextSibling, entIds, levels, structIds);
 			}
-
+			
 			if (currentNode.parentNode) {
 				if (currentNode.parentNode == levels[levels.length-1]) {
 					levels.pop();
@@ -160,14 +160,14 @@ return function(writer) {
 					return doFind(boundaryType, currentNode.parentNode, entIds, levels, structIds);
 				}
 			}
-
+			
 			return null;
 		};
-
+		
 		var match = doFind(boundaryType, currentNode, [], [currentNode.parentNode], {});
 		return match;
 	};
-
+	
 	/**
 	 * Looks for tags that have been added or deleted and updates the entity and struct lists.
 	 * Returns true if a new tag is found.
@@ -175,11 +175,11 @@ return function(writer) {
 	 */
 	tagger.findNewAndDeletedTags = function() {
 		var updateRequired = false;
-
+		
 		// new tags
 		var newTags = w.editor.dom.select('[_tag]:not([id])');
 		if (newTags.length > 0) updateRequired = true;
-
+		
 		// deleted tags
 		for (var id in w.entities) {
 			var nodes = w.editor.dom.select('[name="'+id+'"]');
@@ -201,7 +201,7 @@ return function(writer) {
 		}
 		return updateRequired;
 	};
-
+	
 	/**
 	 * Looks for duplicate tags (from copy paste operations) and creates new entity/struct entries.
 	 */
@@ -238,7 +238,7 @@ return function(writer) {
 			}
 		}
 	};
-
+	
 	tagger.getCurrentTag = function(id) {
 		var tag = {entity: null, struct: null};
 		if (id != null) {
@@ -250,7 +250,7 @@ return function(writer) {
 		}
 		return tag;
 	};
-
+	
 	// a general edit function for entities and structure tags
 	tagger.editTag = function(id, pos) {
 		var tag = tagger.getCurrentTag(id);
@@ -266,7 +266,7 @@ return function(writer) {
 			}
 		}
 	};
-
+	
 	// a general change/replace function
 	tagger.changeTag = function(params) {
 		var tag = tagger.getCurrentTag(params.id);
@@ -275,9 +275,9 @@ return function(writer) {
 			if ($(tag.struct, w.editor.getBody()).attr('_tag')) {
 				w.editor.execCommand('changeSchemaTag', {tag: tag.struct, pos: params.pos, key: params.key});
 			}
-		}
+		} 
 	};
-
+	
 	/**
 	 * A general removal function for entities and structure tags
 	 * @param {String} id The id of the tag to remove
@@ -297,8 +297,8 @@ return function(writer) {
 			}
 		}
 	};
-
-
+	
+	
 	/**
 	 * Add our own undo level, then erase the next one that gets added by tinymce
 	 */
@@ -310,7 +310,7 @@ return function(writer) {
 			this.onAdd.listeners.splice(0, 1); // remove this listener
 		}, w.editor.undoManager);
 	}
-
+	
 	/**
 	 * Displays the appropriate dialog for adding an entity
 	 * @param {String} type The entity type
@@ -353,7 +353,7 @@ return function(writer) {
 			}
 		}
 	};
-
+	
 	/**
 	 * Add the remaining entity info to its entry
 	 * @protected
@@ -365,7 +365,7 @@ return function(writer) {
 		w.editor.selection.moveToBookmark(w.editor.currentBookmark);
 		if (info != null) {
 			var id = tagger.addEntityTag(type);
-
+			
 			// add attributes to tag
 			if (info.attributes) {
 				var tag = w.editor.$('[name='+id+'][_tag]');
@@ -377,7 +377,7 @@ return function(writer) {
 					}
 				}
 			}
-
+			
 			var entry = w.entities[id];
 			entry.info = info;
 			if (type === 'note' || type === 'citation') {
@@ -387,7 +387,7 @@ return function(writer) {
 				var content = entry.info.keywords.join(', ');
 				entry.props.title = w.utilities.getTitleFromContent(content);
 			}
-
+			
 			$.when(
 				w.delegator.getUriForEntity(entry),
 				w.delegator.getUriForAnnotation(),
@@ -409,14 +409,14 @@ return function(writer) {
 					userId: userUri,
 					range: {}
 				};
-
+				
 				w.event('entityAdded').publish(id);
 			});
 		}
 		w.editor.currentBookmark = null;
 		w.editor.focus();
 	};
-
+	
 	/**
 	 * Update the entity info
 	 * @fires Writer#entityEdited
@@ -427,7 +427,7 @@ return function(writer) {
 		w.entities[id].info = info;
 		w.event('entityEdited').publish(id);
 	};
-
+	
 	/**
 	 * Copy an entity internally
 	 * @fires Writer#entityCopied
@@ -446,7 +446,7 @@ return function(writer) {
 			});
 		}
 	};
-
+	
 	/**
 	 * Paste a previously copied entity
 	 * @fires Writer#entityPasted
@@ -461,12 +461,12 @@ return function(writer) {
 		} else {
 			var newEntity = jQuery.extend(true, {}, w.editor.entityCopy);
 			newEntity.props.id = tinymce.DOM.uniqueId('ent_');
-
+			
 			w.editor.selection.moveToBookmark(w.editor.currentBookmark);
 			var sel = w.editor.selection;
 			sel.collapse();
 			var rng = sel.getRng(true);
-
+			
 			var type = newEntity.props.type;
 			var content;
 			if (type === 'note' || type === 'citation' || type === 'keyword') {
@@ -474,20 +474,20 @@ return function(writer) {
 			} else {
 				content = newEntity.props.content;
 			}
-
+			
 			var text = w.editor.getDoc().createTextNode(content);
 			rng.insertNode(text);
 			sel.select(text);
-
+			
 			rng = sel.getRng(true);
 			tagger.insertBoundaryTags(newEntity.props.id, newEntity.props.type, rng);
-
+			
 			w.entities[newEntity.props.id] = newEntity;
-
+			
 			w.event('entityPasted').publish(newEntity.props.id);
 		}
 	};
-
+	
 	/**
 	 * Remove an entity
 	 * @fires Writer#entityRemoved
@@ -495,28 +495,28 @@ return function(writer) {
 	 */
 	tagger.removeEntity = function(id) {
 		id = id || w.editor.currentEntity;
-
+		
 		delete w.entities[id];
 		var node = $('span[name="'+id+'"]', w.editor.getBody());
 		var parent = node[0].parentNode;
 		node.remove();
 		parent.normalize();
-
+		
 		w.event('entityRemoved').publish(id);
-
+		
 		w.editor.currentEntity = null;
 	};
-
+	
 	tagger.addEntityTag = function(type) {
 		_doCustomTaggerUndo();
-
+		
 		var sel = w.editor.selection;
 		var content = sel.getContent();
 		var range = sel.getRng(true);
-
+		
 		// strip tags
 		content = content.replace(/<\/?[^>]+>/gi, '');
-
+		
 		// trim whitespace
 		if (range.startContainer == range.endContainer) {
 			var leftTrimAmount = content.match(/^\s{0,1}/)[0].length;
@@ -526,7 +526,7 @@ return function(writer) {
 			sel.setRng(range);
 			content = content.replace(/^\s+|\s+$/g, '');
 		}
-
+		
 		var title = w.utilities.getTitleFromContent(content);
 		var id = tinymce.DOM.uniqueId('ent_');
 		w.entities[id] = {
@@ -538,16 +538,16 @@ return function(writer) {
 			},
 			info: {}
 		};
-
+		
 		if (content != '') {
 			tagger.insertBoundaryTags(id, type, range);
 		} else {
 			w.emptyTagId = id;
 		}
-
+		
 		return id;
 	};
-
+	
 	/**
 	 * Adds a structure tag to the document, based on the params.
 	 * @fires Writer#tagAdded
@@ -558,17 +558,17 @@ return function(writer) {
 	 */
 	tagger.addStructureTag = function(params) {
 		_doCustomTaggerUndo();
-
+		
 		var bookmark = params.bookmark;
 		var attributes = params.attributes;
 		var action = params.action;
-
-    var id = (attributes['xml:id'] !== undefined) ? attributes['xml:id'] : tinymce.DOM.uniqueId('struct_');
+		
+		var id = (attributes['xml:id'] !== undefined) ? attributes['xml:id'] : tinymce.DOM.uniqueId('struct_');
 		attributes.id = id;
 		attributes._textallowed = w.utilities.canTagContainText(attributes._tag);
 		w.structs[id] = attributes;
 		w.editor.currentStruct = id;
-
+		
 		var node;
 		if (bookmark.tagId) {
 			// this is used when adding tags through the structure tree
@@ -580,13 +580,13 @@ return function(writer) {
 				node = node.parentNode;
 			}
 		}
-
+		
 		var tagName = w.utilities.getTagForEditor(attributes._tag);
 		var open_tag = '<'+tagName;
 		for (var key in attributes) {
 			if (key == 'id' || key.match(/^_/) != null) {
 				open_tag += ' '+key+'="'+attributes[key]+'"';
-			}
+			} 
 		}
 		// TODO find a better way of handling this
 		if (attributes._tag == 'title') {
@@ -597,10 +597,10 @@ return function(writer) {
 				open_tag += ' type="'+attributes.type+'"';
 			}
 		}
-
+		
 		open_tag += '>';
 		var close_tag = '</'+tagName+'>';
-
+		
 		var selection = '\uFEFF';
 		var content = open_tag + selection + close_tag;
 		if (action == 'before') {
@@ -622,9 +622,9 @@ return function(writer) {
 			range.surroundContents(tempNode[0]);
 			tempNode.replaceWith(content);
 		}
-
+		
 		w.event('tagAdded').publish(id);
-
+		
 		if (selection == '\uFEFF') {
 			w.selectStructureTag(id, true);
 		} else if (action == undefined) {
@@ -635,7 +635,7 @@ return function(writer) {
 			w.editor.selection.setRng(rng);
 		}
 	};
-
+	
 	/**
 	 * Change the attributes of a tag, or change the tag itself.
 	 * @fires Writer#tagEdited
@@ -646,7 +646,7 @@ return function(writer) {
 		// TODO add undo support
 		var id = tag.attr('id');
 		attributes.id = id;
-
+		
 		if (tag.attr('_tag') != attributes._tag) {
 			// change the tag
 			var tagName;
@@ -669,19 +669,19 @@ return function(writer) {
 					tag.removeAttr(att.name);
 				}
 			});
-
+			
 			for (var key in attributes) {
 				if (w.converter.reservedAttributes[key] !== true) {
 					tag.attr(key, attributes[key]);
 				}
 			}
 		}
-
+		
 		w.structs[id] = attributes;
-
+		
 		w.event('tagEdited').publish(id);
 	};
-
+	
 	/**
 	 * Remove a structure tag
 	 * @fires Writer#tagRemoved
@@ -690,15 +690,15 @@ return function(writer) {
 	 */
 	tagger.removeStructureTag = function(id, removeContents) {
 		_doCustomTaggerUndo();
-
+		
 		id = id || w.editor.currentStruct;
-
+		
 		if (removeContents == undefined) {
 			if (w.tree && w.tree.currentlySelectedNode != null && w.tree.selectionType != null) {
 				removeContents = true;
 			}
 		}
-
+		
 		var node = $('#'+id, w.editor.getBody());
 		if (removeContents) {
 			node.remove();
@@ -712,12 +712,12 @@ return function(writer) {
 			}
 			parent.normalize();
 		}
-
+		
 		w.event('tagRemoved').publish(id);
-
+		
 		w.editor.currentStruct = null;
 	};
-
+	
 	/**
 	 * Remove a structure tag's contents
 	 * @fires Writer#tagContentsRemoved
@@ -726,18 +726,19 @@ return function(writer) {
 	// TODO refactor this with removeStructureTag
 	tagger.removeStructureTagContents = function(id) {
 		_doCustomTaggerUndo();
-
+		
 		var node = $('#'+id, w.editor.getBody());
 		node.contents().remove();
-
+		
 		w.event('tagContentsRemoved').publish(id);
 	};
-
+	
 	w.event('tagRemoved').subscribe(tagger.findNewAndDeletedTags);
 	w.event('tagContentsRemoved').subscribe(tagger.findNewAndDeletedTags);
 	w.event('contentPasted').subscribe(tagger.findDuplicateTags);
-
+	
 	return tagger;
 };
 
 });
+
