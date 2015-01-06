@@ -284,48 +284,47 @@
 					isLevel1 = false;
 				}
 				
-					var display = 'block';
-					var requiredClass = att.required ? ' required' : '';
-					if (isLevel1 || (t.mode == t.EDIT && structsEntry[att.name])) {
-						display = 'block';
-						attributeSelector += '<li id="select_'+att.name+'" class="selected'+requiredClass+'">'+att.name+'</li>';
-					} else {
-						display = 'none';
-						attributeSelector += '<li id="select_'+att.name+'">'+att.name+'</li>';
+				var display = 'block';
+				var requiredClass = att.required ? ' required' : '';
+				if (isLevel1 || (t.mode == t.EDIT && structsEntry[att.name])) {
+					display = 'block';
+					attributeSelector += '<li id="select_'+att.name+'" class="selected'+requiredClass+'">'+att.name+'</li>';
+				} else {
+					display = 'none';
+					attributeSelector += '<li id="select_'+att.name+'">'+att.name+'</li>';
+				}
+				currAttString += '<div id="form_'+att.name+'" style="display:'+display+';"><label>'+att.name+'</label>';
+				if (att.documentation != '') {
+					currAttString += '<ins class="ui-icon ui-icon-help" title="'+att.documentation+'">&nbsp;</ins>';
+				}
+				currAttString += '<br/>';
+				if (t.mode == t.EDIT) att.defaultValue = structsEntry[att.name] || '';
+				// TODO add list support
+//				if ($('list', attDef).length > 0) {
+//					currAttString += '<input type="text" name="'+att.name+'" value="'+att.defaultValue+'"/>';
+//				} else if ($('choice', attDef).length > 0) {
+				if (att.choices) {
+					currAttString += '<select name="'+att.name+'">';
+					var attVal, selected;
+					for (var j = 0; j < att.choices.length; j++) {
+						attVal = att.choices[j];
+						selected = att.defaultValue == attVal ? ' selected="selected"' : '';
+						currAttString += '<option value="'+attVal+'"'+selected+'>'+attVal+'</option>';
 					}
-					currAttString += '<div id="form_'+att.name+'" style="display:'+display+';"><label>'+att.name+'</label>';
-					if (att.documentation != '') {
-						currAttString += '<ins class="ui-icon ui-icon-help" title="'+att.documentation+'">&nbsp;</ins>';
-					}
-					currAttString += '<br/>';
-					if (t.mode == t.EDIT) att.defaultValue = structsEntry[att.name] || '';
-					// TODO add list support
-//					if ($('list', attDef).length > 0) {
-//						currAttString += '<input type="text" name="'+att.name+'" value="'+att.defaultValue+'"/>';
-//					} else if ($('choice', attDef).length > 0) {
-					if (att.choices) {
-						currAttString += '<select name="'+att.name+'">';
-						var attVal, selected;
-						for (var j = 0; j < att.choices.length; j++) {
-							attVal = att.choices[j];
-							selected = att.defaultValue == attVal ? ' selected="selected"' : '';
-							currAttString += '<option value="'+attVal+'"'+selected+'>'+attVal+'</option>';
-						}
-						currAttString += '</select>';
-//					} else if ($('ref', attDef).length > 0) {
-//						currAttString += '<input type="text" name="'+att.name+'" value="'+att.defaultValue+'"/>';
-					} else {
-						currAttString += '<input type="text" name="'+att.name+'" value="'+att.defaultValue+'"/>';
-					}
-					if (att.required) currAttString += ' <span class="required">*</span>';
-					currAttString += '</div>';
+					currAttString += '</select>';
+//				} else if ($('ref', attDef).length > 0) {
+//					currAttString += '<input type="text" name="'+att.name+'" value="'+att.defaultValue+'"/>';
+				} else {
+					currAttString += '<input type="text" name="'+att.name+'" value="'+att.defaultValue+'"/>';
+				}
+				if (att.required) currAttString += ' <span class="required">*</span>';
+				currAttString += '</div>';
 					
-					if (isLevel1) {
-						level1Atts += currAttString;
-					} else {
-						highLevelAtts += currAttString;
-					}
-
+				if (isLevel1) {
+					level1Atts += currAttString;
+				} else {
+					highLevelAtts += currAttString;
+				}
 			}
 			
 			$('.attributeSelector ul', parent).html(attributeSelector);
