@@ -284,7 +284,6 @@
 					isLevel1 = false;
 				}
 				
-				if (att.name.toLowerCase() != 'id' && att.name.toLowerCase() != 'xml:id') {
 					var display = 'block';
 					var requiredClass = att.required ? ' required' : '';
 					if (isLevel1 || (t.mode == t.EDIT && structsEntry[att.name])) {
@@ -326,7 +325,7 @@
 					} else {
 						highLevelAtts += currAttString;
 					}
-				}
+
 			}
 			
 			$('.attributeSelector ul', parent).html(attributeSelector);
