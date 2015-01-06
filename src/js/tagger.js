@@ -563,7 +563,7 @@ return function(writer) {
 		var attributes = params.attributes;
 		var action = params.action;
 		
-		var id = tinymce.DOM.uniqueId('struct_');
+		var id = (attributes['xml:id'] !== undefined) ? attributes['xml:id'] : tinymce.DOM.uniqueId('struct_');
 		attributes.id = id;
 		attributes._textallowed = w.utilities.canTagContainText(attributes._tag);
 		w.structs[id] = attributes;
