@@ -17656,6 +17656,27 @@ tinymce.onAddEditor.add(function(tinymce, ed) {
 				}
 			};
 
+                        // Setup range items and newBlockName
+			function setupRange() {
+			  container = rng.startContainer;
+			  offset = rng.startOffset;
+			  newBlockName = (settings.force_p_newlines ? 'p' : '') || settings.forced_root_block;
+			  newBlockName = newBlockName ? newBlockName.toUpperCase() : '';
+			  documentMode = dom.doc.documentMode;
+			  shiftKey = evt.shiftKey;
+
+			  // Resolve node index
+			  if (container.nodeType == 1 && container.hasChildNodes()) {
+			    isAfterLastNodeInContainer = offset > container.childNodes.length - 1;
+			    container = container.childNodes[Math.min(offset, container.childNodes.length - 1)] || container;
+			    if (isAfterLastNodeInContainer && container.nodeType == 3) {
+			      offset = container.nodeValue.length;
+			    } else {
+			      offset = 0;
+			    }
+			  }
+			}
+
 			// Delete any selected contents
 			if (!rng.collapsed) {
 				editor.execCommand('Delete');
@@ -17668,35 +17689,45 @@ tinymce.onAddEditor.add(function(tinymce, ed) {
 			}
 
 			// Setup range items and newBlockName
-			container = rng.startContainer;
-			offset = rng.startOffset;
-			newBlockName = (settings.force_p_newlines ? 'p' : '') || settings.forced_root_block;
-			newBlockName = newBlockName ? newBlockName.toUpperCase() : '';
-			documentMode = dom.doc.documentMode;
-			shiftKey = evt.shiftKey;
+		  	setupRange();
 
-			// Resolve node index
-			if (container.nodeType == 1 && container.hasChildNodes()) {
-				isAfterLastNodeInContainer = offset > container.childNodes.length - 1;
-				container = container.childNodes[Math.min(offset, container.childNodes.length - 1)] || container;
-				if (isAfterLastNodeInContainer && container.nodeType == 3) {
-					offset = container.nodeValue.length;
-				} else {
-					offset = 0;
-				}
-			}
-
-			// Get editable root node normaly the body element but sometimes a div or span
+		  	// Get editable root node normaly the body element but sometimes a div or span
 			editableRoot = getEditableRoot(container);
 
-			// If there is no editable root then enter is done inside a contentEditable false element
-			if (!editableRoot) {
-				return;
+		  	// If there is no editable root then enter is done inside a contentEditable false element
+		  	if (!editableRoot) {
+			  return;
 			}
 
 			undoManager.beforeChange();
-			insertBr();
 
+			// Find parent block and setup empty block paddings
+			parentBlock = dom.getParent(container, dom.isBlock);
+			containerBlock = parentBlock ? dom.getParent(parentBlock.parentNode, dom.isBlock) : null;
+
+			// End of block insert <br> after current parent.
+			if (isCaretAtStartOrEndOfBlock(false) && parentBlock && parentBlock.nextSibling) {
+			  // Move after current parent.
+			  rng.setStartBefore(parentBlock.nextSibling);
+			  rng.setEndBefore(parentBlock.nextSibling);
+			  // Update position, offset, etc
+			  setupRange();
+			  // Insert newline
+			  insertBr();
+			  // Move cursor to new line.
+			  rng.setStartBefore(parentBlock.nextSibling);
+			  rng.setEndBefore(parentBlock.nextSibling);
+			  selection.setRng(rng);
+			  // Start of block insert <br> before current parent.
+			} else if (isCaretAtStartOrEndOfBlock(true) && parentBlock && parentBlock.previousSibling) {
+			  rng.setStartAfter(parentBlock.previousSibling);
+			  rng.setEndAfter(parentBlock.previousSibling);
+			  setupRange();
+			  insertBr();
+			  // In text block 'normal' behavior.
+			} else {
+			  insertBr();
+			}
 		}
 
 		editor.onKeyDown.add(function(ed, evt) {
