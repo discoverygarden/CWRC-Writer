@@ -40,14 +40,15 @@ return function(writer, config) {
     '<div style="margin-top: 10px;">'+
         '<label>Font Type</label>'+
         '<select name="fonttype">'+
-            '<option value="Arial" style="font-family: Arial; font-size: 12px;">Arial</option>'+
-            '<option value="Book Antiqua" style="font-family: Book Antiqua; font-size: 12px;">Book Antiqua</option>'+
-            '<option value="Georgia" style="font-family: Georgia; font-size: 12px;">Georgia</option>'+
-            '<option value="Helvetica" style="font-family: Helvetica; font-size: 12px;">Helvetica</option>'+
-            '<option value="Palatino" style="font-family: Palatino; font-size: 12px;">Palatino</option>'+
-            '<option value="Tahoma" style="font-family: Tahoma; font-size: 12px;">Tahoma</option>'+
-            '<option value="Times New Roman" style="font-family: Times New Roman; font-size: 12px;">Times New Roman</option>'+
-            '<option value="Verdana" style="font-family: Verdana; font-size: 12px;">Verdana</option>'+
+            '<option value="Arial" style="font-family: Arial; font-size: 14px;">Arial</option>'+
+            '<option value="Book Antiqua" style="font-family: Book Antiqua; font-size: 14px;">Book Antiqua</option>'+
+            '<option value="Georgia" style="font-family: Georgia; font-size: 14px;">Georgia</option>'+
+            '<option value="Helvetica" style="font-family: Helvetica; font-size: 14px;">Helvetica</option>'+
+            '<option value="Palatino" style="font-family: Palatino; font-size: 14px;">Palatino</option>'+
+            '<option value="Tahoma" style="font-family: Tahoma; font-size: 14px;">Tahoma</option>'+
+            '<option value="Times New Roman" style="font-family: Times New Roman; font-size: 14px;">Times New Roman</option>'+
+            '<option value="Verdana" style="font-family: Verdana; font-size: 14px;">Verdana</option>'+
+            '<option value="Lato" style="font-family: Lato; font-size: 14px;">Lato</option>'+
         '</select>'+
     '</div>'+
     '<div style="margin-top: 10px;">'+
@@ -58,12 +59,14 @@ return function(writer, config) {
         '<label for="showstructbrackets">Show Tags</label>'+
         '<input type="checkbox" id="showstructbrackets" />'+
     '</div>'+
+    '<div id="settingsDialogAdvanced">'+
     '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #aaa;">'+
     '<label>Editor Mode</label>'+
         '<select name="editormode">'+
             '<option value="xml">XML only (no overlap)</option>'+
             '<option value="xmlrdf">XML and RDF (no overlap)</option>'+
             '<option value="xmlrdfoverlap">XML and RDF (overlapping entities)</option>'+
+            '<option value="rdf">RDF only</option>'+
         '</select>'+
     '</div>'+
     '<div style="margin-top: 10px;">'+
@@ -71,6 +74,7 @@ return function(writer, config) {
         '<select name="schema">'+
         '</select>'+
         '<br/><button>Add Schema</button>'+
+    '</div>'+
     '</div>'+
     '</div>');
     
@@ -94,7 +98,9 @@ return function(writer, config) {
             } else {
                 $('select[name="editormode"] > option[value="xmlrdf"]', $settingsDialog).attr('selected', true);
             }
-        }        
+        } else if (w.mode === w.RDF) {
+            $('select[name="editormode"] > option[value="rdf"]', $settingsDialog).attr('selected', true);
+        }
         $('select[name="schema"] > option[value="'+w.schemaManager.schemaId+'"]', $settingsDialog).attr('selected', true);
         $settingsDialog.dialog('open');
     });
@@ -171,6 +177,10 @@ return function(writer, config) {
             if (w.mode !== w.XMLRDF || w.allowOverlap === false) {
                 doModeChange = true;
             }
+        } else if (editorMode === 'rdf') {
+            if (w.mode !== w.RDF || w.allowOverlap === false) {
+                doModeChange = true;
+            }
         }
         
         if (doModeChange) {
@@ -194,6 +204,8 @@ return function(writer, config) {
                     message = 'You have overlapping entities and are attemping to switch to a mode which prohibits them.<br/>The overlapping entities will be discarded if you continue.<br/><br/>Do you wish to continue?';
                 }
             }
+            // TODO rdf message
+            
             if (message !== undefined) {
                 w.dialogManager.confirm({
                     title: 'Warning',
@@ -226,6 +238,9 @@ return function(writer, config) {
                 } else if (editorMode === 'xmlrdfoverlap') {
                     w.mode = w.XMLRDF;
                     w.allowOverlap = true;
+                } else if (editorMode === 'rdf') {
+                    w.mode = w.RDF;
+                    w.allowOverlap = true;
                 }
             }
             
@@ -243,8 +258,9 @@ return function(writer, config) {
             settings.showStructBrackets = $('#showstructbrackets').prop('checked');
             
             var schemaId = $('select[name="schema"]', $settingsDialog).val();
-            
-            w.event('schemaChanged').publish(schemaId);
+            if (schemaId !== w.schemaManager.schemaId) {
+                w.event('schemaChanged').publish(schemaId);
+            }
             
             var styles = {
                 fontSize: settings.fontSize,
@@ -271,6 +287,10 @@ return function(writer, config) {
     return {
         getSettings: function() {
             return settings;
+        },
+        hideAdvanced: function() {
+            $('#settingsDialogAdvanced').hide();
+            $settingsDialog.dialog('option', 'height', 200);
         }
     };
 };

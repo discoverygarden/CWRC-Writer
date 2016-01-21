@@ -4,28 +4,43 @@ define([
     'cwrcDialogs',
     'dialogs/addSchema','dialogs/fileManager','dialogs/header','dialogs/message','dialogs/triple',
     'dialogs/cwrcPerson','dialogs/cwrcOrg','dialogs/cwrcPlace','dialogs/cwrcTitle','dialogs/cwrcCitation',
-    'dialogs/schemaTags','dialogs/help'
+    'dialogs/schemaTags','dialogs/help','dialogs/copyPaste'
 ], function($, jqueryui, cD,
         AddSchema, FileManager, Header, Message, Triple,
         CwrcPerson, CwrcOrg, CwrcPlace, CwrcTitle, CwrcCitation,
-        SchemaTags, Help
+        SchemaTags, Help, CopyPaste
 ) {
 
+function handleResize(dialogEl) {
+    if (dialogEl.is(':visible')) {
+        var winWidth = $(window).width();
+        var winHeight = $(window).height();
+        var dialogWidth = dialogEl.dialog('option', 'width');
+        var dialogHeight = dialogEl.dialog('option', 'height');
+        
+        if (dialogWidth > winWidth) {
+            dialogEl.dialog('option', 'width', winWidth * 0.8);
+        }
+        if (dialogHeight > winHeight) {
+            dialogEl.dialog('option', 'height', winHeight * 0.8);
+        }
+        dialogEl.dialog('option', 'position', {my: 'center', at: 'center', of: window});
+    }
+}
+    
 // add event listeners to all of our jquery ui dialogs
 $.extend($.ui.dialog.prototype.options, {
-    create: function(event) {
-        $(event.target).on('dialogopen', function(event) {
+    create: function(e) {
+        $(e.target).on('dialogopen', function(event) {
             // wrap our dialogs in the cwrc css scope
             $(event.target).parent('.ui-dialog').prev('.ui-widget-overlay').andSelf().wrapAll('<div class="cwrc" />');
-            // centre the dialog
-            $(this).dialog('option', 'position', {my: 'center', at: 'center', of: window});
-            // resize if necessary
-            var docHeight = $(document).height();
-            if ($(this).dialog('option', 'height') >= docHeight) {
-                $(this).dialog('option', 'height', docHeight * 0.85);
-            }
+            
+            handleResize($(event.target));
+            $(window).on('resize', $.proxy(handleResize, this, $(event.target)));
         }).on('dialogclose', function(event) {
             $(event.target).parent('.ui-dialog').unwrap();
+            
+            $(window).off('resize', $.proxy(handleResize, this, $(event.target)));
         });
     }
 });
@@ -50,6 +65,7 @@ return function(writer) {
     var dialogs = {
         message: new Message(w),
         help: new Help(w),
+        copyPaste: new CopyPaste(w),
         triple: new Triple(w),
         header: new Header(w),
         filemanager: new FileManager(w),
@@ -62,16 +78,10 @@ return function(writer) {
         schemaTags: new SchemaTags(w)
     };
 
-    // set URL for CWRC-Dialogs
-    cD.setRepositoryBaseObjectURL('http://cwrc-dev-01.srv.ualberta.ca/islandora/object/');
-
-    // log in for CWRC-Dialogs
-//    cD.initializeWithCookieData(null);
-//    cD.initializeWithLogin('CWRC-WriterTestUser', 'quirkyCWRCwriter');
-
     if (w.initialConfig.cwrcDialogs !== undefined) {
         var conf = w.initialConfig.cwrcDialogs;
         if (conf.cwrcApiUrl) cD.setCwrcApi(conf.cwrcApiUrl);
+        if (conf.repositoryBaseObjectUrl) cD.setRepositoryBaseObjectURL(conf.repositoryBaseObjectUrl);
         if (conf.geonameUrl) cD.setGeonameUrl(conf.geonameUrl);
         if (conf.viafUrl) cD.setViafUrl(conf.viafUrl);
         if (conf.googleGeocodeUrl) cD.setGoogleGeocodeUrl(conf.googleGeocodeUrl);

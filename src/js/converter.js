@@ -48,6 +48,10 @@ return function(writer) {
         w.entitiesManager.highlightEntity();
 
         var xmlString = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        xmlString += '<?xml-model href="'+w.schemaManager.getCurrentSchema().url+'" type="application/xml" schematypens="http://relaxng.org/ns/structure/1.0"?>\n';
+        var currentCSS = w.schemaManager.currentCSS || w.schemaManager.getCurrentSchema().cssUrl;
+        xmlString += '<?xml-stylesheet type="text/css" href="'+currentCSS+'"?>\n';
+        
 
         var body = $(w.editor.getBody());
         var clone = body.clone(false, true); // make a copy, don't clone body events, but clone child events
@@ -72,13 +76,19 @@ return function(writer) {
             });
         });
 
-        // rdf
+        // RDF
+        
         var rdfString = '';
-        if (w.mode === w.XMLRDF && includeRDF) {
+        if (w.mode === w.RDF || (w.mode === w.XMLRDF && includeRDF)) {
             var rdfmode = 'xml';
             rdfString = buildAnnotations(rdfmode);
         }
-
+        if (w.mode === w.RDF) {
+            return rdfString;
+        }
+        
+        // XML
+        
         var root = body.children('[_tag='+w.root+']');
         // make sure the root has the right namespaces for validation purposes
         var struct = w.structs[root.attr('id')];
@@ -524,9 +534,9 @@ return function(writer) {
      * @param doc An XML DOM
      */
     converter.processDocument = function(doc) {
-        var rootName = doc.firstChild.nodeName;
         var schemaId;
-        var cssFilename;
+//        var cssFilename;
+        var cssUrl;
         var loadSchemaCss = true; // whether to load schema css
 
         // TODO need a better way of tying this to the schemas config
@@ -542,7 +552,7 @@ return function(writer) {
                     var aliases = schema.aliases || [];
                     if (schemaUrl == schema.url || $.inArray(schemaUrl, aliases) !== -1) {
                         schemaId = id;
-                        cssFilename = null;
+//                        cssFilename = null;
                         return false;
                     }
                 });
@@ -571,18 +581,18 @@ return function(writer) {
                 }
             } else if (node.nodeName === 'xml-stylesheet') {
                 var xmlStylesheetData = node.data;
-                var cssUrl = xmlStylesheetData.match(/href="([^"]*)"/)[1];
-                cssFilename = cssUrl.match(/(\w+)(.css)$/);
-                if (cssFilename != null) {
-                    cssFilename = 'css/'+cssFilename[1]+'_converted.css';
-                }
+                cssUrl = xmlStylesheetData.match(/href="([^"]*)"/)[1];
+//                cssFilename = cssUrl.match(/(\w+)(.css)$/);
+//                if (cssFilename != null) {
+//                    cssFilename = 'css/'+cssFilename[1]+'_converted.css';
+//                }
 
             }
         }
 
-        if (cssFilename != null) {
+        if (cssUrl !== undefined) {
             loadSchemaCss = false;
-            w.schemaManager.loadSchemaCSS(cssFilename);
+            w.schemaManager.loadSchemaCSS(cssUrl);
         }
 
         if (schemaId === undefined) {
@@ -646,7 +656,7 @@ return function(writer) {
             processRdf(rdfs);
             rdfs.remove();
         } else {
-            w.mode = w.XML;
+            w.mode = w.XMLRDF;
             w.allowOverlap = false;
             processEntities($(w.root+', '+w.root.toLowerCase(), doc));
         }
@@ -668,7 +678,7 @@ return function(writer) {
                 }
             }
 
-            w.event('documentLoaded').publish();
+            w.event('documentLoaded').publish(w.editor.getBody());
 
             // try putting the cursor in the body
             window.setTimeout(function() {
@@ -683,22 +693,24 @@ return function(writer) {
             // reset the undo manager
             w.editor.undoManager.clear();
 
-            var msg;
-            if (w.mode === w.XML) {
-                msg = '<b>XML only</b><br/>Only XML tags and no RDF/Semantic Web annotations will be created.';
-            } else {
-                if (w.allowOverlap) {
-                    msg = '<b>XML and RDF (overlap)</b><br/>XML tags and RDF/Semantic Web annotations equivalent to the XML tags will be created, to the extent that the hierarchy of the XML schema allows. Annotations that overlap will be created in RDF only, with no equivalent XML tags.';
+            if (w.isReadOnly !== true) {
+                var msg;
+                if (w.mode === w.XML) {
+                    msg = '<b>XML only</b><br/>Only XML tags and no RDF/Semantic Web annotations will be created.';
                 } else {
-                    msg = '<b>XML and RDF (no overlap)</b><br/>XML tags and RDF/Semantic Web annotations equivalent to the XML tags will be created, consistent with the hierarchy of the XML schema, so annotations will not be allowed to overlap.';
+                    if (w.allowOverlap) {
+                        msg = '<b>XML and RDF (overlap)</b><br/>XML tags and RDF/Semantic Web annotations equivalent to the XML tags will be created, to the extent that the hierarchy of the XML schema allows. Annotations that overlap will be created in RDF only, with no equivalent XML tags.';
+                    } else {
+                        msg = '<b>XML and RDF (no overlap)</b><br/>XML tags and RDF/Semantic Web annotations equivalent to the XML tags will be created, consistent with the hierarchy of the XML schema, so annotations will not be allowed to overlap.';
+                    }
                 }
+    
+                w.dialogManager.show('message', {
+                    title: 'CWRC-Writer Mode',
+                    msg: msg,
+                    type: 'info'
+                });
             }
-
-            w.dialogManager.show('message', {
-                title: 'CWRC-Writer Mode',
-                msg: msg,
-                type: 'info'
-            });
         } else {
             w.dialogManager.show('message', {
                 title: 'Error',

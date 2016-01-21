@@ -1,4 +1,4 @@
-define(['jquery', 'tinymce', 'mapper'], function($, tinymce, Mapper) {
+define(['jquery', 'tinymce', 'mapper', 'css.parser', 'css.stringify'], function($, tinymce, Mapper, cssParser, cssStringify) {
 
 /**
  * @class SchemaManager
@@ -57,6 +57,12 @@ return function(writer, config) {
     },
     
     /**
+     * The URL for the current CSS
+     * @member {String}
+     */
+    sm.currentCSS = null;
+    
+    /**
      * Add a schema to the list.
      * @fires Writer#schemaAdded
      * @param {Object} config The config object
@@ -82,6 +88,13 @@ return function(writer, config) {
      * @param {Function} callback Callback for when the load is complete
      */
     sm.loadSchema = function(schemaId, startText, loadCss, callback) {
+        // remove previous mappings listeners
+        if (sm.mapper.mappings.listeners !== undefined) {
+            for (var event in sm.mapper.mappings.listeners) {
+                w.event(event).unsubscribe(sm.mapper.mappings.listeners[event]);
+            }
+        }
+        
         var baseUrl = ''; //w.project == null ? '' : w.baseUrl; // handling difference between local and server urls
         sm.schemaId = schemaId;
         var schemaUrl = sm.schemas[sm.schemaId].url;
@@ -93,9 +106,15 @@ return function(writer, config) {
                 dataType: 'xml'
             }),
             sm.mapper.loadMappings(schemaMappingsId)
-        ).then(function(resp) {
-            var data = resp[0];
-            var status = resp[1];
+        ).then(function(resp1, resp2) {
+            // process mappings
+            if (sm.mapper.mappings.listeners !== undefined) {
+                for (var event in sm.mapper.mappings.listeners) {
+                    w.event(event).subscribe(sm.mapper.mappings.listeners[event]);
+                }
+            }
+            
+            var data = resp1[0];
             
             sm.schemaXML = data;
             // get root element
@@ -160,13 +179,6 @@ return function(writer, config) {
                 
                 sm.schemaJSON = w.utilities.xmlToJSON($('grammar', sm.schemaXML)[0]);
                 
-                // update the schema for schematags.js
-                // TODO migrate to 4
-//              var stb = w.editor.controlManager.controls.editor_schemaTagsButton;
-//              if (stb.menu) {
-//                  stb.parentControl.buildMenu(stb.menu, null, {disabled: false, mode: 'add'});
-//              }
-                
                 w.event('schemaLoaded').publish();
                 
                 if (callback) callback();
@@ -225,69 +237,36 @@ return function(writer, config) {
     
     /**
      * Load the CSS and convert it to the internal format
-     * NB: Doesn't work in Chrome.
      * @param {String} url The URL for the CSS
      */
     sm.loadSchemaCSS = function(url) {
         $('#schemaRules', w.editor.dom.doc).remove();
-        $('head', w.editor.dom.doc).append('<link id="schemaRules" rel="stylesheet" href="'+url+'"/>');
         
-        if (url.match('converted.css') != null) {
-            // already converted so exit
-            return;
-        }
-        var name = url.split('/');
-        name = name[name.length-1];
-        var numCss = w.editor.getDoc().styleSheets.length;
-        var cssInt = null;
-        function parseCss() {
-            var stylesheet = null;
-            var stylesheets = w.editor.getDoc().styleSheets;
-            for (var i = 0; i < stylesheets.length; i++) {
-                var s = stylesheets[i];
-                if (s.href && s.href.indexOf(name) != -1) {
-                    stylesheet = s;
-                    break;
-                }
-            }
-            if (stylesheet) {
-                try {
-                    var rules = stylesheet.cssRules;
-                    var newRules = '';
-                    // adapt the rules to our format, should only modify element names in selectors
-                    for (var i = 0; i < rules.length; i++) {
-                        // chrome won't get proper selector, see: https://code.google.com/p/chromium/issues/detail?id=67782
-                        var selector = rules[i].selectorText;
+        $.get(url, function(data) {
+            sm.currentCSS = url;
+            
+            var cssObj = cssParser(data);
+            var rules = cssObj.stylesheet.rules;
+            for (var i = 0; i < rules.length; i++) {
+                var rule = rules[i];
+                if (rule.type === 'rule') {
+                    var convertedSelectors = [];
+                    for (var j = 0; j < rule.selectors.length; j++) {
+                        var selector = rule.selectors[j];
                         var newSelector = selector.replace(/(^|,|\s)(\w+)/g, function(str, p1, p2, offset, s) {
-                            var tagName = w.utilities.getTagForEditor(p2);
-                            return p1+tagName+'[_tag="'+p2+'"]';
+                            return p1+'*[_tag="'+p2+'"]';
                         });
-                        var css = rules[i].cssText;
-                        var newCss = css.replace(selector, newSelector);
-                        newRules += newCss+'\n';
+                        convertedSelectors.push(newSelector);
+                        
                     }
-                    $('#schemaRules', w.editor.dom.doc).remove();
-                    $('head', w.editor.dom.doc).append('<style id="schemaRules" type="text/css" />');
-                    $('#schemaRules', w.editor.dom.doc).text(newRules);
-                    stylesheet.disabled = true;
-                } catch (e) {
-                    setTimeout(parseCss, 25);
+                    rule.selectors = convertedSelectors;
                 }
-            } else {
-                setTimeout(parseCss, 25);
             }
-        };
-        if (numCss > 0) {
-            parseCss();
-        } else {
-            cssInt = setInterval(function() {
-                var len = w.editor.getDoc().styleSheets.length;
-                if (len > numCss) {
-                    clearInterval(cssInt);
-                    parseCss();
-                }
-            }, 25);
-        }
+            var cssString = cssStringify(cssObj);
+            
+            $('head', w.editor.dom.doc).append('<style id="schemaRules" type="text/css" />');
+            $('#schemaRules', w.editor.dom.doc).text(cssString);
+        });
     };
     
     w.event('schemaChanged').subscribe(function(schemaId) {

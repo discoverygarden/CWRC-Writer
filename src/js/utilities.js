@@ -17,6 +17,14 @@ return function(writer) {
      */
     var u = {};
     
+    u.getBlockTag = function() {
+        return BLOCK_TAG;
+    }
+    
+    u.getInlineTag = function() {
+        return INLINE_TAG;
+    }
+    
     u.xmlToString = function(xmlData) {
         var xmlString = '';
         try {
@@ -56,6 +64,7 @@ return function(writer) {
      * @returns {String}
      */
     u.getTitleFromContent = function(content) {
+        content = content.trim();
         if (content.length <= 34) return content;
         var title = content.substring(0, 34) + '&#8230;';
         return title;
@@ -436,6 +445,11 @@ return function(writer) {
     u.isTagBlockLevel = function(tagName) {
         if (tagName == w.root) return true;
         return w.editor.schema.getBlockElements()[tagName] != null;
+    };
+    
+    u.isTagEntity = function(tagName) {
+        var type = w.schemaManager.mapper.getEntityTypeForTag(tagName);
+        return type != null;
     };
     
     u.getTagForEditor = function(tagName) {
